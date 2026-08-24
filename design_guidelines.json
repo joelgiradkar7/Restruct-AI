@@ -1,0 +1,47 @@
+{
+  "app_name": "ResructAI / Blast-Damage Rehabilitation & Structural Engineering Assistant",
+  "app_type": "hybrid_fullstack",
+  "context": "Structural Engineering & Disaster Rehabilitation, offering AI-powered (GPT-5.4 Mini via Emergent LLM) multi-technique ranking, reasoning, urgency rating, material specification, safety notes, and professional disclaimer for blast-damaged structures.",
+  "archetype": "Swiss & High-Contrast (Authority, Clarity, Truth) mixed with Performance Pro for engineering command center accuracy",
+  "typography": {
+    "heading": "Chivo, sans-serif",
+    "body": "IBM Plex Sans, sans-serif",
+    "mono": "JetBrains Mono, monospace"
+  },
+  "colors": {
+    "primary": "#0F172A",
+    "accent": "#EF4444",
+    "warning": "#F59E0B",
+    "success": "#10B981",
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "border": "#E2E8F0",
+    "text_primary": "#0F172A",
+    "text_secondary": "#64748B"
+  },
+  "visual_enhancers": {
+    "borders": "1px solid #E2E8F0",
+    "shadows": "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+    "glassmorphism": "backdrop-blur-xl bg-white/80 border border-slate-200/80"
+  },
+  "component_path": "/app/frontend/src/components/",
+  "image_urls": {
+    "hero_background": "https://images.unsplash.com/photo-1717185691293-4ecd7072b847?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxjb25jcmV0ZSUyMGJsYXN0JTIwZGFtYWdlJTIwc3RydWN0dXJhbCUyMHJlcGFpciUyMGFzc2Vzc21lbnR8ZW58MHx8fHwxNzg3NTQ3MzgxfDA&ixlib=rb-4.1.0&q=85",
+    "structural_damage_sample": "https://images.pexels.com/photos/11542689/pexels-photo-11542689.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  },
+  "key_features": [
+    "Guided Blast-Damage Assessment Form (Component type, blast pressure/distance, crack width, spalling depth, steel reinforcement exposure, structural integrity status)",
+    "Optional Photo Upload & Base64 preview simulation for visual damage analysis",
+    "AI-Generated Ranked Rehabilitation Techniques (using GPT-5.4 Mini with Emergent LLM key)",
+    "Detailed Engineering Breakdown: Reasoning, Urgency, Materials list, Step-by-step procedure, Safety notes, Cost/Time estimate",
+    "Professional Structural Engineering Disclaimer & Liability Notice",
+    "Assessment History with local/backend persistence and PDF export or Report printing",
+    "Interactive Comparison & Material Estimator"
+  ],
+  "accessibility_and_testing": {
+    "interactive_elements_testid": true,
+    "apca_contrast_checked": true,
+    "prefers_reduced_motion": true
+  },
+  "instructions_to_main_agent": "Ensure all form inputs have explicit data-testid attributes. Use Sonner for toast notifications. Use Lucide React icons. Style with Tailwind CSS using clean structural engineering dashboard aesthetics. Implement both assessment creation and history viewing."
+}
