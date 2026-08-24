@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -15,6 +16,11 @@ from io import BytesIO
 from datetime import datetime, timezone
 from PIL import Image, UnidentifiedImageError
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+from docx import Document
+from openpyxl import Workbook
 
 
 ROOT_DIR = Path(__file__).parent
@@ -138,6 +144,53 @@ async def create_assessment(payload: AssessmentCreate):
 async def list_assessments():
     records = await db.assessments.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
     return records
+
+async def get_assessment_or_404(assessment_id: str) -> dict:
+    record = await db.assessments.find_one({"id": assessment_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return record
+
+def report_filename(record: dict, extension: str) -> str:
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in record["structure_name"])[:48]
+    return f"{safe_name}_resructai_report.{extension}"
+
+@api_router.get("/assessments/{assessment_id}/report/{file_format}")
+async def download_report(assessment_id: str, file_format: str):
+    record = await get_assessment_or_404(assessment_id)
+    if file_format not in {"pdf", "docx", "xlsx"}:
+        raise HTTPException(status_code=400, detail="Choose pdf, docx, or xlsx")
+    buffer = BytesIO()
+    title = f"ResructAI | {record['structure_name']}"
+    if file_format == "pdf":
+        styles = getSampleStyleSheet()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=42, leftMargin=42, topMargin=42, bottomMargin=42)
+        story = [Paragraph("RESRUCTAI / STRUCTURAL REVIEW", styles["Title"]), Paragraph(title, styles["Heading2"]), Paragraph(f"{record['component_type']} · {record['integrity_status']} · {record['created_at'][:10]}", styles["Normal"]), Spacer(1, 16), Paragraph("IMMEDIATE ACTIONS", styles["Heading3"]), ListFlowable([ListItem(Paragraph(x, styles["BodyText"])) for x in record.get("immediate_actions", [])], bulletType="bullet")]
+        for item in record.get("recommendations", []):
+            story += [Spacer(1, 12), Paragraph(f"{item.get('rank')}. {item.get('technique', '')} — {item.get('urgency', '')}", styles["Heading3"]), Paragraph(item.get("reasoning", ""), styles["BodyText"]), Paragraph("Materials: " + "; ".join(item.get("materials", [])), styles["BodyText"]), Paragraph("Procedure: " + "; ".join(item.get("procedure", [])), styles["BodyText"]), Paragraph("Safety: " + "; ".join(item.get("safety_notes", [])), styles["BodyText"]), Paragraph("IS code considerations: " + "; ".join(item.get("is_code_considerations", [])), styles["BodyText"])]
+        story += [Spacer(1, 16), Paragraph("PROFESSIONAL REVIEW REQUIRED", styles["Heading3"]), Paragraph(record["disclaimer"], styles["BodyText"])]
+        doc.build(story)
+        media_type = "application/pdf"
+    elif file_format == "docx":
+        document = Document()
+        document.add_heading("RESRUCTAI / STRUCTURAL REVIEW", 0); document.add_heading(title, 1)
+        document.add_paragraph(f"{record['component_type']} · {record['integrity_status']} · {record['created_at'][:10]}")
+        document.add_heading("Immediate actions", 2)
+        for action in record.get("immediate_actions", []): document.add_paragraph(action, style="List Bullet")
+        for item in record.get("recommendations", []):
+            document.add_heading(f"{item.get('rank')}. {item.get('technique', '')} — {item.get('urgency', '')}", 2)
+            document.add_paragraph(item.get("reasoning", "")); document.add_paragraph("Materials: " + "; ".join(item.get("materials", []))); document.add_paragraph("Procedure: " + "; ".join(item.get("procedure", []))); document.add_paragraph("Safety: " + "; ".join(item.get("safety_notes", []))); document.add_paragraph("IS code considerations: " + "; ".join(item.get("is_code_considerations", [])))
+        document.add_heading("Professional review required", 2); document.add_paragraph(record["disclaimer"]); document.save(buffer)
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        workbook = Workbook(); sheet = workbook.active; sheet.title = "Assessment"
+        sheet.append(["ResructAI structural review", record["structure_name"]]); sheet.append(["Component", record["component_type"]]); sheet.append(["Integrity", record["integrity_status"]]); sheet.append([])
+        sheet.append(["Rank", "Technique", "Urgency", "Reasoning", "Materials", "Procedure", "Safety notes", "IS code considerations"])
+        for item in record.get("recommendations", []): sheet.append([item.get("rank"), item.get("technique"), item.get("urgency"), item.get("reasoning"), "\n".join(item.get("materials", [])), "\n".join(item.get("procedure", [])), "\n".join(item.get("safety_notes", [])), "\n".join(item.get("is_code_considerations", []))])
+        sheet.append([]); sheet.append(["Disclaimer", record["disclaimer"]]); sheet.column_dimensions["A"].width = 12; sheet.column_dimensions["B"].width = 30
+        workbook.save(buffer); media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="{report_filename(record, file_format)}"'})
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):

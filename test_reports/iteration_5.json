@@ -1,0 +1,19 @@
+{
+  "summary": "Live regression completed: backend assessment/image validation passed, browser result/history/export flows passed, but mobile results overflow horizontally.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [{"component": "Results mobile layout", "issue": "At 390px viewport document scrollWidth is 488px (main/results width expands to 420px), producing horizontal overflow and content outside the viewport.", "selector": ".results, .main-content", "priority": "MEDIUM"}],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_assessment_live.py", "/app/test_reports/pytest/pytest_results_iteration5.xml", "/app/test_reports/iteration_5.json"],
+  "action_items": ["Constrain the results/main content width at mobile (including long recommendation text) so document scrollWidth remains 390px or less; retest report controls and result photo."],
+  "critical_code_review_comments": ["The mobile media rules do not prevent a child/results canvas from expanding beyond the available 322px content area; add min-width:0 and overflow-safe wrapping/constraining to the relevant result containers."],
+  "updated_files": ["/app/test_reports/iteration_5.json", "/app/test_reports/pytest/pytest_results_iteration5.xml"],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "seed_data_creation": "Created TEST_live_beam_review, TEST_JPEG, TEST_PNG, TEST_WEBP, and TEST_browser_beam assessment records during live tests; records remain in history.",
+  "retest_needed": true,
+  "should_call_test_agent_after_fix": true,
+  "context_for_next_testing_agent": "Backend pytest 3/3 passed. Browser verified real non-uniform JPEG upload, result photo rendering, three recommendations, IS-code content, history reopen, PDF/DOCX/XLSX signatures, and no page error elements. Only mobile horizontal overflow remains. One initial browser assertion was test-only case sensitivity and was rerun successfully.",
+  "rca of the issue": "At 390px, html/body scrollWidth measured 488px while clientWidth was 390px; .main-content measured 420px and .results measured 420px against a 322px available content width beside the 68px sidebar. The responsive rules stack content but do not constrain the expanding result canvas/child width. Historical backend logs also contain intermittent AI invalid-JSON/500/502 events, but all current regression requests passed."
+}

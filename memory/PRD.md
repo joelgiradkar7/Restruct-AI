@@ -25,10 +25,11 @@ Build me a AI for suggesting the best technique can use for rehabilitation of th
 - 2026-08-24: Added live GPT-5.4 Mini streaming-backed generation and MongoDB persistence.
 - 2026-08-24: Added Indian Standards-aware recommendations and verified a representative RC blast case.
 - 2026-08-24: Added strict actual-image verification and rejection of malformed/near-uniform uploads.
+- 2026-08-24: Added concise result presentation, retained uploaded site photos in the result view, and added PDF, DOCX, and XLSX report downloads.
 
 ## Prioritized backlog
 - P0: None remaining for the current scope.
-- P1: Add engineer-authored review notes and report export with project branding.
+- P1: Add engineer-authored review notes and report branding/custom cover details.
 - P2: Add multi-component assessments and side-by-side technique comparison.
 
 ## Next tasks list
