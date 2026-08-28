@@ -312,25 +312,49 @@ def normalize_advice(advice: dict, component_type: str) -> dict:
         "decision_table": DECISION_TABLE,
     }
 
+```python
 async def generate_advice(payload: AssessmentCreate) -> dict:
     key = os.environ.get("GROQ_API_KEY")
     if not key:
         raise HTTPException(status_code=503, detail="AI service is not configured")
+
     if payload.image_base64:
         if payload.image_mime not in {"image/jpeg", "image/png", "image/webp"}:
-            raise HTTPException(status_code=422, detail="Only JPG, PNG, or WEBP photos are supported")
+            raise HTTPException(
+                status_code=422,
+                detail="Only JPG, PNG, or WEBP photos are supported"
+            )
+
         try:
-            raw_image = base64.b64decode(payload.image_base64.split(",")[-1], validate=True)
+            raw_image = base64.b64decode(
+                payload.image_base64.split(",")[-1],
+                validate=True
+            )
+
             with Image.open(BytesIO(raw_image)) as image:
                 image.verify()
+
             with Image.open(BytesIO(raw_image)) as image:
                 sample = image.convert("L").resize((64, 64)).getextrema()
+
                 if sample[1] - sample[0] <= 2:
-                    raise HTTPException(status_code=422, detail="Please upload a photo with visible structural detail")
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Please upload a photo with visible structural detail"
+                    )
+
         except HTTPException:
             raise
-        except (ValueError, binascii.Error, UnidentifiedImageError, OSError) as exc:
-            raise HTTPException(status_code=422, detail="The uploaded photo is not a valid image") from exc
+        except (
+            ValueError,
+            binascii.Error,
+            UnidentifiedImageError,
+            OSError
+        ) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="The uploaded photo is not a valid image"
+            ) from exc
 
     prompt = f"""You are a cautious structural rehabilitation advisor supporting work in India. Analyze the supplied user fields and optional image for a qualified engineer across ANY type of structural damage — including but not limited to cracking, spalling, delamination, reinforcement corrosion, fire/thermal, earthquake/seismic, blast/explosion, vehicle/impact, water/moisture, chemical deterioration, differential settlement, foundation distress, overloading, construction defects, material deterioration, structural deformation, masonry damage, connection/joint damage, or unknown/other damage. Never claim a final design, occupancy approval, structural safety guarantee, remaining capacity, or confirmed cause. Return ONLY valid JSON with this exact shape:
 {{"assessment_status":"Sufficient evidence|Insufficient evidence","damage_classification":"No apparent structural damage|Minor / localized|Moderate|Severe|Potentially unstable|Insufficient evidence","observed_conditions":["..."],"user_measurements":["..."],"preliminary_severity":"Low|Moderate|High|Critical|Indeterminate","evidence_quality":"Good|Moderate|Poor|Insufficient","missing_information":["..."],"quick_assessment":{{"element":"...","apparent_condition":"...","key_visible_evidence":["..."],"severity":"...","confidence":"Low|Moderate|High","immediate_concern":"...","engineer_verification_required":"..."}},"evidence_confidence":{{"overall":"Low|Moderate|High","percentage":0,"evidence_detected":["..."],"estimated_inferred":["..."],"cannot_be_determined":["..."]}},"possible_damage_mechanism":{{"most_likely":"...","alternatives":["..."],"confidence":"Low|Moderate|High","supporting_evidence":["..."]}},"limitations":["..."],"required_verification":["..."],"immediate_actions":["..."],"recommendations":[{{"rank":1,"technique":"...","fit":"...","reasoning":"...","evidence_link":"...","appropriate_when":"...","do_not_use_when":"...","urgency":"Critical|High|Moderate|Monitor","materials":["..."],"procedure":["..."],"safety_notes":["..."],"timeframe":"...","is_code_considerations":["..." ]}}]}}
@@ -338,13 +362,21 @@ async def generate_advice(payload: AssessmentCreate) -> dict:
 STRICTLY SEPARATE OBSERVED / PROVIDED CONDITIONS from POSSIBLE DAMAGE MECHANISMS. Observed_conditions must list only what is visible in the image or explicitly stated by the user (e.g., "Concrete spalling with visible reinforcement"). Possible_damage_mechanism.most_likely must be conservatively worded — when evidence is insufficient, write "Cannot be distinguished reliably from the available evidence." or "Possible mechanisms include… (requires field verification)". Never write "The most likely cause is…" unless the user has supplied enough field information to narrow the possibilities; if narrowing, briefly state what evidence justified the narrowing. Use hedged wording such as "May indicate…", "Could be associated with…", "Consistent with…", "Possible…", "Requires field verification…". Never state a cause as definite unless the evidence establishes it. user_measurements must contain only values the user actually provided; if a field is "Not measured", "Not visible", or "Unknown", either omit it or write "<field>: Not provided.". If a photograph does not allow a measurement, write "Not reliably measurable from the submitted image." Never fabricate crack widths, crack depths, concrete strength, reinforcement size, hidden reinforcement condition, structural capacity, load capacity, residual capacity, or safety percentages. Do NOT emit numerical confidence values in user-facing text; evidence_confidence.percentage is optional and not displayed to end users. preliminary_severity is a PRELIMINARY OBSERVED DAMAGE SEVERITY only — not a final safety classification; use "Indeterminate" when evidence is insufficient. evidence_quality rates image quality, visibility, number of photographs, and completeness of provided information. missing_information must clearly list additional info that would improve the assessment (e.g., crack width, member dimensions, drawings, concrete strength, reinforcement details, loading history, damage extent). NEVER recommend demolition on the basis of image-only evidence and NEVER definitively declare a structure safe or unsafe from a photograph alone.
 Internally classify every important statement as OBSERVED, ESTIMATED, INFERRED, or UNKNOWN, then communicate those labels naturally. Evidence_detected may include only visible image features or explicit user fields. If the image is poor, irrelevant, ambiguous, or no structural evidence is available, set assessment_status and damage_classification to "Insufficient evidence", preliminary_severity to "Indeterminate", evidence_quality to "Poor" or "Insufficient", lower confidence, explain what is visible/provided and what is unknown, request better photographs (overall context, close-up, scale, multiple angles), and do not issue a confident diagnosis. Any reported incident (blast, fire, earthquake, impact, etc.) is user-provided context, not visual proof of that damage type.
 Provide 3 concise ranked pathways only when evidence supports decision support; otherwise keep recommendations conservative and verification-led. Connect each pathway to evidence, state when it is appropriate, and when it must not be used. For each option identify applicable Indian Standard families only when relevant (for example IS 456 for reinforced concrete, IS 15988 for evaluation/strengthening, IS 13920 for ductile detailing, IS 800 for structural steel, IS 1893 for seismic, IS 1905 for masonry, or IS 516 for material testing). Do not invent clause numbers; say current editions and project-specific provisions must be verified.
-Assessment: {payload.model_dump_json(exclude={"image_base64"})} Keep the entire JSON response concise. Each array should contain at most 3 items, and each string should be brief. Do not repeat information. Complete the JSON object within the token limit."""
+
+Keep the entire JSON response concise. Complete the JSON object fully. Do not stop before the final closing braces.
+
+Assessment: {payload.model_dump_json(exclude={"image_base64"})}"""
+
+    # ---------------------------------------------------------
+    # GROQ
+    # ---------------------------------------------------------
+    from groq import Groq
 
     client = Groq(api_key=key)
 
     user_content = prompt
 
-    # Preserve image support using Groq vision
+    # Preserve image support
     if payload.image_base64 and payload.image_mime in {
         "image/jpeg",
         "image/png",
@@ -376,13 +408,15 @@ Assessment: {payload.model_dump_json(exclude={"image_base64"})} Keep the entire 
                     "content": user_content
                 }
             ],
-            temperature=0.2,
+            temperature=0.1,
             max_completion_tokens=16384,
-            reasoning_effort="none",
             response_format={"type": "json_object"}
         )
 
         output = response.choices[0].message.content
+
+        if not output:
+            raise ValueError("Groq returned an empty response")
 
         return clean_json_text(output)
 
@@ -392,6 +426,8 @@ Assessment: {payload.model_dump_json(exclude={"image_base64"})} Keep the entire 
             status_code=502,
             detail="The AI returned an unreadable assessment. Please try again."
         ) from exc
+```
+
 
 @api_router.post("/assessments", response_model=Assessment)
 async def create_assessment(payload: AssessmentCreate):
