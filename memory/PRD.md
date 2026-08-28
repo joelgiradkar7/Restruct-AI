@@ -26,11 +26,14 @@ Build me a AI for suggesting the best technique can use for rehabilitation of th
 - 2026-08-24: Added Indian Standards-aware recommendations and verified a representative RC blast case.
 - 2026-08-24: Added strict actual-image verification and rejection of malformed/near-uniform uploads.
 - 2026-08-24: Added concise result presentation, retained uploaded site photos in the result view, and added PDF, DOCX, and XLSX report downloads.
+- 2026-02: Evidence-based reporting upgrade — Quick Assessment, Evidence & Confidence (Observed/Estimated/Unknown), possible damage mechanism, image-based limitations, required verification, insufficient-evidence handling; all propagated to PDF/DOCX/XLSX.
+- 2026-02: Backend `normalize_advice` hardening — enforces enum values (status, classification, confidence, urgency), clamps confidence percentage 0-100, coerces list types, pads to exactly 3 recommendations with a verification-focused pathway when AI returns fewer.
+- 2026-02: Mobile 390px fix — added `overflow-wrap: anywhere` to result/section headings and history item text to prevent long underscored structure names from overflowing.
 
 ## Prioritized backlog
-- P0: None remaining for the current scope.
-- P1: Add engineer-authored review notes and report branding/custom cover details.
-- P2: Add multi-component assessments and side-by-side technique comparison.
+- P0: None remaining.
+- P1: Printable engineering review report; structured engineer sign-off/review status; multi-component site assessment grouping.
+- P2: Evidence gallery for multiple labelled before/after photos; side-by-side technique comparison; one-page field executive summary.
 
 ## Next tasks list
 1. Add a printable engineering review report.

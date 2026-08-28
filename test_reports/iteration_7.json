@@ -1,0 +1,35 @@
+{
+  "summary": "Backend + frontend regression for evidence-based reporting upgrade. Added new pytest suite covering normalized fields (quick_assessment, evidence_confidence, possible_damage_mechanism, limitations, required_verification, assessment_status, damage_classification), exact-3 recommendations, insufficient-evidence path, PDF/DOCX/XLSX sections, and image validation. All 11 backend tests passed against live URL. Frontend flow verified end-to-end: form submit -> Evidence & Confidence panel with Observed/Estimated/Unknown lists, mechanism, limitations, required verification, 3 ranked recommendations, PDF download HTTP 200, history navigation renders full result.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Results header @ 390px", "issues": ["Long single-token structure_name (e.g. 'TEST_UI_evidence_beam') in H1 does not break and causes horizontal overflow (documentElement.scrollWidth=562 vs viewport 390). Add word-break: break-word / overflow-wrap: anywhere on .result-header h1."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_evidence_reports.py",
+    "/app/backend/tests/test_assessment_live.py",
+    "/app/test_reports/pytest/pytest_results_iteration7.xml"
+  ],
+  "action_items": [
+    "Apply overflow-wrap/word-break on results H1 (.result-header h1) so long underscored structure names do not cause horizontal overflow on mobile widths."
+  ],
+  "critical_code_review_comments": [
+    "server.py: create_assessment returns response_model=Assessment but Assessment schema currently omits 'quick_assessment.key_visible_evidence' item validation and 'possible_damage_mechanism.supporting_evidence' visibility on frontend; frontend EvidencePanel does not surface supporting_evidence though backend populates it — consider showing it or removing to reduce dead data.",
+    "server.py is a single ~370-line file with heavy inline PDF/DOCX/XLSX generation; consider splitting exports into a reports module for maintainability.",
+    "Frontend App.js is a single dense file with inline styles/logic and JSX minified to one line per component — hurts readability and DRY. Consider splitting components into files."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_evidence_reports.py",
+    "/app/test_reports/iteration_7.json",
+    "/app/test_reports/pytest/pytest_results_iteration7.xml"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "95% (minor mobile H1 overflow with long underscored names)"},
+  "seed_data_creation": "Created TEST_evidence_detailed, TEST_evidence_minimal, TEST_pdf_report, TEST_docx_report, TEST_xlsx_report, TEST_bad_b64/mime/uniform_img (rejected), TEST_UI_evidence_beam via UI. 43 records in history at end.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "New pytest suite /app/backend/tests/test_evidence_reports.py validates normalization (STATUS/CLASSIFICATION/CONFIDENCE/URGENCY enums, percentage int 0-100, list types, exactly 3 recommendations) and export sections (PDF via pypdf, DOCX via python-docx, XLSX via openpyxl). Run with TEST_BASE_URL env var. Mobile 390px is fine for typical structure names; only extremely long unbroken tokens overflow.",
+  "rca of the issue": "Mobile overflow RCA: .result-header h1 in App.css lacks overflow-wrap/word-break, so tokens without spaces (like TEST_UI_evidence_beam) render at their intrinsic width, expanding the flex container beyond 390px. Fix: add `overflow-wrap: anywhere; word-break: break-word;` to .result-header h1 (and optionally .history-item b)."
+}
