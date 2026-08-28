@@ -1,10 +1,10 @@
 fastapi==0.110.1
 uvicorn[standard]==0.25.0
 python-dotenv==1.0.1
-motor==3.3.2
+motor<3.0.0
+pymongo<4.0
 pydantic==2.7.4
 Pillow==10.4.0
 reportlab==4.2.5
 python-docx==1.1.2
 openpyxl==3.1.5
-pymongo<4.0
