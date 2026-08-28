@@ -18,8 +18,10 @@ from PIL import Image, UnidentifiedImageError
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.colors import Color
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
 from docx import Document
+from docx.shared import RGBColor, Pt
 from openpyxl import Workbook
 
 
@@ -400,6 +402,27 @@ def report_filename(record: dict, extension: str) -> str:
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in record["structure_name"])[:48]
     return f"{safe_name}_resructai_report.{extension}"
 
+WATERMARK_PRIMARY = "RESTRUCT AI"
+WATERMARK_SECONDARY = "AI-POWERED STRUCTURAL DAMAGE ASSESSMENT"
+
+def _pdf_watermark(canvas, doc):
+    canvas.saveState()
+    canvas.setFillColor(Color(0.75, 0.75, 0.78, alpha=0.18))
+    canvas.setFont("Helvetica-Bold", 72)
+    canvas.translate(A4[0] / 2, A4[1] / 2)
+    canvas.rotate(35)
+    canvas.drawCentredString(0, 0, WATERMARK_PRIMARY)
+    canvas.setFont("Helvetica", 14)
+    canvas.setFillColor(Color(0.75, 0.75, 0.78, alpha=0.22))
+    canvas.drawCentredString(0, -46, WATERMARK_SECONDARY)
+    canvas.restoreState()
+    canvas.saveState()
+    canvas.setFillColor(Color(0.4, 0.4, 0.45, alpha=0.7))
+    canvas.setFont("Helvetica", 8)
+    canvas.drawString(42, 20, f"{WATERMARK_PRIMARY} · {WATERMARK_SECONDARY}")
+    canvas.drawRightString(A4[0] - 42, 20, f"Page {doc.page}")
+    canvas.restoreState()
+
 @api_router.get("/assessments/{assessment_id}/report/{file_format}")
 async def download_report(assessment_id: str, file_format: str):
     record = await get_assessment_or_404(assessment_id)
@@ -418,10 +441,22 @@ async def download_report(assessment_id: str, file_format: str):
         for row in record.get("decision_table", []):
             story += [Paragraph(f"Evidence: {row.get('evidence','')} → Pathway: {row.get('pathway','')} → Verification: {row.get('verification','')}", styles["BodyText"])]
         story += [Spacer(1, 12), Paragraph("LIMITATIONS OF IMAGE-BASED ASSESSMENT", styles["Heading3"]), Paragraph("; ".join(record.get("limitations", [])), styles["BodyText"]), Paragraph("A photograph alone generally cannot establish: hidden reinforcement condition, crack depth, actual structural capacity, material strength, load capacity, internal damage, foundation condition, complete load path, long-term durability, or actual safety/occupancy status without supporting engineering analysis.", styles["BodyText"]), Paragraph("REQUIRED VERIFICATION", styles["Heading3"]), Paragraph("; ".join(record.get("required_verification", [])), styles["BodyText"]), Paragraph("PROFESSIONAL REVIEW REQUIRED", styles["Heading3"]), Paragraph("Replacement or demolition decisions require detailed structural assessment, consideration of safety, feasibility, economics, regulatory requirements and approval by the appropriate qualified professionals. This report is preliminary decision support only and is not an engineering certification.", styles["BodyText"]), Paragraph(record["disclaimer"], styles["BodyText"])]
-        doc.build(story)
+        doc.build(story, onFirstPage=_pdf_watermark, onLaterPages=_pdf_watermark)
         media_type = "application/pdf"
     elif file_format == "docx":
         document = Document()
+        header = document.sections[0].header.paragraphs[0]
+        header.text = ""
+        run = header.add_run(f"{WATERMARK_PRIMARY}  ·  {WATERMARK_SECONDARY}")
+        run.italic = True
+        run.font.size = Pt(9)
+        run.font.color.rgb = RGBColor(0xA0, 0xA0, 0xA8)
+        footer = document.sections[0].footer.paragraphs[0]
+        footer.text = ""
+        frun = footer.add_run(f"{WATERMARK_PRIMARY} — Preliminary Engineering Decision Support · Not a Structural Certification")
+        frun.italic = True
+        frun.font.size = Pt(8)
+        frun.font.color.rgb = RGBColor(0xA0, 0xA0, 0xA8)
         document.add_heading("RESRUCTAI / STRUCTURAL REVIEW", 0); document.add_heading(title, 1)
         document.add_paragraph(f"{record['component_type']} · {record['integrity_status']} · {record['created_at'][:10]}")
         quick = record.get("quick_assessment", {}); confidence = record.get("evidence_confidence", {}); mechanism = record.get("possible_damage_mechanism", {})
@@ -448,6 +483,9 @@ async def download_report(assessment_id: str, file_format: str):
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
         workbook = Workbook(); sheet = workbook.active; sheet.title = "Assessment"
+        sheet.oddHeader.center.text = f"&\"Arial,Bold\"&12&K808080{WATERMARK_PRIMARY}\n&\"Arial,Italic\"&9&K909098{WATERMARK_SECONDARY}"
+        sheet.oddFooter.center.text = f"&\"Arial,Italic\"&8&K909098{WATERMARK_PRIMARY} — Preliminary Engineering Decision Support · Not a Structural Certification"
+        sheet.oddFooter.right.text = "&\"Arial\"&8&K909098Page &P of &N"
         sheet.append(["ResructAI structural review", record["structure_name"]]); sheet.append(["Damage type", record.get("damage_type", "Unknown")]); sheet.append(["Component", record["component_type"]]); sheet.append(["Material", record.get("construction_material", "Unknown")]); sheet.append(["Integrity", record["integrity_status"]]); sheet.append([])
         sheet.append(["Assessment status", record.get("assessment_status", "Insufficient evidence")]); sheet.append(["Damage classification", record.get("damage_classification", "Insufficient evidence")]); sheet.append(["Preliminary observed severity", record.get("preliminary_severity", "Indeterminate")]); sheet.append(["Evidence quality", record.get("evidence_quality", "Insufficient")]); sheet.append(["Evidence label", record.get("evidence_label", "Insufficient evidence")]); sheet.append(["Preliminary recovery pathway", record.get("recovery_pathway", "Further Investigation Required")]); sheet.append(["Priority level", record.get("priority_level", "Indeterminate")]); sheet.append(["Why this pathway", record.get("recovery_pathway_reason", "")]); confidence = record.get("evidence_confidence", {}); sheet.append(["Observed / provided conditions", "\n".join(record.get("observed_conditions", []))]); sheet.append(["User-provided measurements", "\n".join(record.get("user_measurements", []))]); sheet.append(["Evidence detected", "\n".join(confidence.get("evidence_detected", []))]); sheet.append(["Estimated / inferred", "\n".join(confidence.get("estimated_inferred", []))]); sheet.append(["Cannot be determined", "\n".join(confidence.get("cannot_be_determined", []))]); sheet.append(["Missing information", "\n".join(record.get("missing_information", []))]); sheet.append([])
         sheet.append(["Rank", "Technique (subject to engineering verification)", "Urgency", "Reasoning", "Evidence link", "Appropriate when", "Do not use when", "Materials", "Procedure", "Safety notes", "IS code considerations"])
