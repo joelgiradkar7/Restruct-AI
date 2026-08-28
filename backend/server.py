@@ -312,7 +312,6 @@ def normalize_advice(advice: dict, component_type: str) -> dict:
         "decision_table": DECISION_TABLE,
     }
 
-```python
 async def generate_advice(payload: AssessmentCreate) -> dict:
     key = os.environ.get("GROQ_API_KEY")
     if not key:
@@ -426,7 +425,6 @@ Assessment: {payload.model_dump_json(exclude={"image_base64"})}"""
             status_code=502,
             detail="The AI returned an unreadable assessment. Please try again."
         ) from exc
-```
 
 
 @api_router.post("/assessments", response_model=Assessment)
