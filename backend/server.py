@@ -15,6 +15,7 @@ import binascii
 from io import BytesIO
 from datetime import datetime, timezone
 from PIL import Image, UnidentifiedImageError
+from groq import Groq
 # from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
