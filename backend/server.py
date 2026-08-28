@@ -365,7 +365,7 @@ Assessment: {payload.model_dump_json(exclude={"image_base64"})}"""
 
     try:
         response = client.chat.completions.create(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
