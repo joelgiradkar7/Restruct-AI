@@ -529,8 +529,11 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "https://restruct-ai-cyan.vercel.app",
+    ],
+    allow_origin_regex=r"https://restruct-[a-zA-Z0-9-]+\.vercel\.app",
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
