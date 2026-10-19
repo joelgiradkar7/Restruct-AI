@@ -36,6 +36,16 @@ db = client[os.environ['DB_NAME']]
 # Create the main app without a prefix
 app = FastAPI()
 
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Hello from Restruct-AI!",
+        "description": "This is the backend for Restruct-AI APP.",
+        "github": "https://github.com/joelgiradkar7/Restruct-AI/tree/main"
+    }
+
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
