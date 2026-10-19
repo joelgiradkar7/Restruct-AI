@@ -537,11 +537,18 @@ async def get_status_checks():
 # Include the router in the main app
 app.include_router(api_router)
 
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://restruct-ai-cyan.vercel.app"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://restruct-ai-cyan.vercel.app",
-    ],
+    allow_origins=cors_origins,
     allow_origin_regex=r"https://restruct-[a-zA-Z0-9-]+\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
