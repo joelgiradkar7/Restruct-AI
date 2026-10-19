@@ -80,7 +80,7 @@ class Assessment(BaseModel):
     structure_name: str
     component_type: str
     integrity_status: str
-    created_at: str
+    created_at: datetime
     recommendations: List[dict]
     immediate_actions: List[str]
     disclaimer: str
