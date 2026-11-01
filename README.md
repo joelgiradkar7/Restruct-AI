@@ -85,7 +85,7 @@ connection / joint damage, and unknown / other.
 | `MONGO_URL`         | MongoDB connection string (e.g. `mongodb://localhost:27017`) |
 | `DB_NAME`           | Database name to use                                        |
 | `CORS_ORIGINS`      | Comma-separated allowed origins (use `*` for local dev)     |
-| `EMERGENT_LLM_KEY`  | Emergent Universal LLM key (required for AI assessments)    |
+| `GROQ_API_KEY`  | GROQ_API_KEY | Groq API key (required for AI assessments)   |
 
 ### `frontend/.env`
 
@@ -163,7 +163,7 @@ Fill in real values (minimum for local use):
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=restruct_ai
 CORS_ORIGINS=*
-EMERGENT_LLM_KEY=<paste your Emergent Universal LLM key>
+GROQ_API_KEY=<paste your Groq API key>
 
 # frontend/.env
 REACT_APP_BACKEND_URL=http://localhost:8001
@@ -182,7 +182,7 @@ net start MongoDB
 
 ### Step 6 — Configure the AI service
 
-Paste the Emergent Universal LLM key into `backend/.env` as `EMERGENT_LLM_KEY`.
+Paste the Emergent Universal LLM key into `backend/.env` as `GROQ_API_KEY`.
 If missing, `POST /api/assessments` returns HTTP 503.
 
 ### Step 7 — Migrations / setup
